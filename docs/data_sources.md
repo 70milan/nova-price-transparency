@@ -19,10 +19,21 @@ Pulled 2026-10-19. Re-verify links monthly (insurer files) / annually (hospital 
 - Oct 2026 should be the same path with 2026-10-01 (VERIFY before use).
 - The index itself is huge. Stream it (ijson), never load into memory. Pull only Virginia in-network file URLs.
 
-### Kaiser Permanente — Mid-Atlantic States region (MD/VA/DC)
-- Page: https://healthy.kaiserpermanente.org/front-door/machine-readable → "Mid-Atlantic States" section
-- File list loads via JavaScript — open in browser, copy the Mid-Atlantic in-network + TOC links manually.
-- Expect thin per-service pricing (closed-panel model). That gap is a finding, not a bug.
+### Kaiser Permanente — Mid-Atlantic States region (MD/VA/DC) = folder `/ma/`
+- Page: https://healthy.kaiserpermanente.org/front-door/machine-readable (list is JS-rendered; ad blockers break it)
+- Monthly manifest (found via DevTools Network tab) — plain text, path + size in bytes:
+  https://healthy.kaiserpermanente.org/pricing/innetwork/2026-10_List.txt
+  Pattern: /pricing/innetwork/YYYY-MM_List.txt → use this for automated discovery, no scraping needed.
+- Mid-Atlantic files, Oct 2026 (base: https://healthy.kaiserpermanente.org/pricing/innetwork):
+  - /ma/2026-10-01_KFHP-MA_index.json  (76 KB) → points to -01. HMO plans (~300, VA/MD/DC). CORE.
+  - /ma/2026-10-01_KPIC-MA_index.json  (1 KB)  → points to -04. KP Insurance Co. group products.
+  - /ma/2026-10-01_SF-MA_index.json    (13 KB) → points to -07. Self-funded employer plans (EIN ids).
+  - /ma/2026-10-01_NEW_MA-COMMERCIAL-01_in-network-rates.zip   (~270 MB zipped, 5.72 GB unzipped) ← downloaded
+  - /ma/2026-10-01_NEW_MA-COMMERCIAL-04_in-network-rates.zip   (~251 MB) optional
+  - /ma/2026-10-01_NEW_MA-COMMERCIAL-07_in-network-rates.zip   (~270 MB) optional
+- Ignore /externaldata/libertydental/*MAS-VA* (dental, out of scope).
+- Files are ~800 MB zipped total — NOT thin. Test whether rates are real per-service prices or mostly placeholders.
+- Out-of-network list exists too: /pricing/outofnetwork/2026-10_List.txt (out of scope for now).
 
 ## Hospitals (Hospital Price Transparency MRFs)
 

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Block raw data, secrets and large files from being committed.
+max_bytes=$((50 * 1024 * 1024))
+fail=0
+git diff --cached --name-only --diff-filter=ACMR > .git/staged_files.tmp
+while IFS= read -r f; do
+  case "$f" in
+    data/*|.env|*/.env|*.zip|*.gz|*.xlsx|*.parquet)
+      echo "blocked: $f (raw data or secret)"; fail=1 ;;
+  esac
+  size=$(git cat-file -s ":$f" 2>/dev/null || echo 0)
+  if [ "$size" -gt "$max_bytes" ]; then
+    echo "blocked: $f is $((size / 1024 / 1024)) MB (limit 50 MB)"; fail=1
+  fi
+done < .git/staged_files.tmp
+rm -f .git/staged_files.tmp
+[ "$fail" -eq 0 ] || echo "Commit aborted. Unstage with: git restore --staged <file>"
+exit "$fail"

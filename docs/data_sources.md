@@ -13,7 +13,15 @@ Pulled 2026-10-19. Re-verify links monthly (insurer files) / annually (hospital 
 - Notes: published by Merative (TPA) on behalf of Sentara; schema version 2.0.0; .zip not .json.gz; hosted on Azure Blob (same cloud as us).
 - Index has hundreds of employer plans pointing at the same 2 files → plan-to-file is many-to-one (model as a bridge table).
 
-### Anthem (BCBS Virginia) — BIGGEST, scope it down
+### CareFirst BCBS (replaces Anthem, decided 2026-10-21)
+- Page: https://individual.carefirst.com/individuals-families/mandates-policies/machine-readable-file.page (captcha on Download buttons, but real URLs are in the page HTML)
+- Index host: https://stmrffilesprod001.blob.core.windows.net/mrf-files/<date>_<name>_index.json (container listing blocked; discover by scraping page HTML)
+- 7 indexes: carefirst cfa / hmo / ncas / netlease / par / ppo (2026-09-29), FEHBP-PSHBP-BlueChoice HMO (2026-10-04). Plain JSON, 27 KB - 2.5 MB.
+- In-network files: .json.gz, split into parts (`_10_of_35`). CareFirst PPO/FEHBP parts 14-34 MB. "National in-network HMO file" parts up to 1.4 GB (likely BCBS national network, probably skip).
+- Many URLs on carefirstbcbs.mrf.bcbs.com are SIGNED and expire (~1 month). Always re-read the index; never store file URLs for reuse.
+- Issuers: CAREFIRST NCA (GHMSI) = DC + NoVA, CAREFIRST OF MARYLAND, BLUECHOICE (all three).
+
+### Anthem (BCBS Virginia) — DEFERRED ("if time remains")
 - Search page: https://www.anthem.com/machine-readable-file/search/
 - National index pattern (Aug 2026 confirmed): https://antm-pt-prod-dataz-nogbd-nophi-us-east1.s3.amazonaws.com/anthem/2026-08-01_anthem_index.json.gz
 - Oct 2026 should be the same path with 2026-10-01 (VERIFY before use).

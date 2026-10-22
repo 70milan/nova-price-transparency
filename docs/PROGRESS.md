@@ -1,19 +1,39 @@
 # Progress Log
 
 ## Next step
-1. Commit + push Day 2 work (`data/` confirmed gitignored; `docs/PROGRESS.md` still untracked).
-2. Start `ingest/flatten.py`: stream from zip with ijson → write `provider_group` + `negotiated_rate` Parquet. Test on Sentara HMO first.
+1. Design approved: `docs/design_flatten.md`. Move KP + Sentara zips to `data/kp/2026-10/` and `data/sentara/2026-10/`.
+2. Build `ingest/flatten.py` per the design. Test on CareFirst PPO `_10_of_35` + HMO `hmo10` parts first, then KP `-01`, then Sentara HMO.
+3. Commit pending changes (via code-check): `.gitignore`, `hello.txt` deletion, `CLAUDE.md`, `.githooks/`, `.claude/skills/`, docs.
+4. Before Day 5: brainstorm the gold star schema (conformed dims for the mismatch report).
 
 ## Open items
-- KP: `-04` / `-07` files optional; later test whether they're near-duplicates of `-01`.
+- KP: `-04` / `-07` skipped. Manifest sizes: `-01` 269,913,911 / `-07` 269,932,025 (likely near-duplicate) / `-04` 251,075,590. Confirm later in Databricks (hash + EXCEPT).
 - KP: how many provider groups are NoVA hospitals? Needs NPI lookup.
-- Anthem: not started. Stream national index, keep only VA in-network URLs.
+- CareFirst replaced Anthem (2026-10-21). File scope approved: PPO + BlueChoice HMO (issuers GHMSI, BLUECHOICE) + FEHBP. Skip "National in-network" files, CareFirst of Maryland-only, dental (DHMO).
+- CareFirst samples in `data/carefirst/2026-10/`: 3 indexes (hmo, ppo, FEHBP), PPO part `_10_of_35`, HMO part `hmo10`. 4 indexes not downloaded (cfa, ncas, netlease, par).
+- Sentara: download OHIC zip (approved scope). Verify OHIC = PPO/POS side via index plan names.
+- KP scope: `-01` only.
 - Hospitals: UVA Prince William / Haymarket MRF not found. Reston/StoneSprings current HCA links need verifying.
 - Nothing uploaded to Azure yet.
 
 ---
 
 ## Day log
+
+### Day 3 — 2026-10-20 / 21
+- Tooling: rewrote `code-check` skill for this project; added `brainstorm` skill; `.gitignore` fixed (CLAUDE.md now tracked, zip/gz/xlsx/.vscode/.databricks added); `hello.txt` deleted; git pre-commit hook `.githooks/pre-commit` (blocks data/, .env, zip/gz/xlsx/parquet, >50 MB), enabled with `git config core.hooksPath .githooks`.
+- Replaced Anthem with CareFirst BCBS (direct URLs in page HTML, no captcha). Oscar/UHC rejected (individual-only / huge files, low NoVA share).
+- Verified all 3 insurers share the same 31 JSON fields (scanned first 300 codes each). Only KP has `bundled_codes`.
+- Brainstorm `flatten.py` decisions:
+  1. Insurers: KP, Sentara, CareFirst.
+  2. Flatten = restructure only; all casts/fixes/DQ/NoVA filter in silver.
+  3. Output: one folder per source file `out/<insurer>/<yyyy-mm>/<source_file>/{provider_group,negotiated_rate}.parquet`.
+  4. Provider IDs kept as a list column; silver explodes.
+  5. All values as text (rates included); silver casts to DECIMAL(18,2).
+  6. Test on CareFirst PPO + HMO parts first.
+  7. All-or-nothing per file: write to `_tmp`, rename on success, else log + continue.
+  8. Files in scope: KP `-01`; Sentara HMO + OHIC; CareFirst PPO + BlueChoice HMO + FEHBP.
+  9. Approach A: two streaming passes (provider list, then prices) + pyarrow writer with fixed schema.
 
 ### Day 1 — 2026-10-19
 - Budget alert ($150), resource group, storage account + containers, access connector, role assignments.
@@ -56,7 +76,13 @@
 - First record: CPT 0006M, 68 negotiated_rates; first one maps 5,490 provider groups to a single price → heavy fan-out on explode.
 - negotiated_prices carry `service_code[]` (place-of-service codes) — not in planned silver model yet.
 
-### Anthem
+### CareFirst (replaces Anthem)
+- Index host: `stmrffilesprod001.blob.core.windows.net/mrf-files/` (see `data_sources.md`). Container listing blocked; discover via page HTML.
+- In-network files are `.json.gz` split into parts (`_10_of_35`). PPO/FEHBP parts 14-34 MB; "National" HMO parts up to 1.4 GB (skipped).
+- Signed URLs on `carefirstbcbs.mrf.bcbs.com` expire (~1 month). Always re-read the index.
+- Same layout as KP/Sentara. One PPO part: 609 billing codes.
+
+### Anthem (deferred)
 - National index on S3: `.../anthem/YYYY-MM-01_anthem_index.json.gz`. Huge. Not started.
 
 ---
@@ -77,3 +103,8 @@
 13. Sentara CPT `billing_code_type_version` = "10" (not a real CPT version) → standardization rule, keep raw.
 14. Same TIN in two formats within one provider group: `541581185` vs `54-1581185` → strip dashes.
 15. `service_code[]` array on negotiated_prices not in planned `negotiated_rate` columns.
+16. CareFirst schema `version` = "1.2.0" (KP 2.0.1, Sentara 2.0.0).
+17. CareFirst header `last_updated_on` = "2020-08-27" on 2026-10 files. Don't trust header date; use filename / index date.
+18. CareFirst `name` is a category ("Surgery" for CPT 57452), not a description. Need a CPT description source in silver.
+19. `billing_code_modifier` (all 3) and `bundled_codes` (KP) not in planned silver model -> added.
+20. `provider_group_id` is unique only within a file. Key = source_file + provider_group_id.

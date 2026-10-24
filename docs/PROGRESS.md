@@ -2,7 +2,7 @@
 
 ## Next step
 1. Design approved: `docs/design_flatten.md`. Move KP + Sentara zips to `data/kp/2026-10/` and `data/sentara/2026-10/`.
-2. Build `ingest/flatten.py` per the design. Test on CareFirst PPO `_10_of_35` + HMO `hmo10` parts first, then KP `-01`, then Sentara HMO.
+2. `ingest/flatten.py` skeleton written + smoke-tested (pass 1 OK: 23,953 provider_group rows on CareFirst PPO part 10). NEXT: JJ writes the `TODO(human)` loop in `iter_rates()` (rate blocks -> one row per price), then run pytest fixture + CareFirst checks. Test on CareFirst PPO `_10_of_35` + HMO `hmo10` parts first, then KP `-01`, then Sentara HMO.
 3. Commit pending changes (via code-check): `.gitignore`, `hello.txt` deletion, `CLAUDE.md`, `.githooks/`, `.claude/skills/`, docs.
 4. Before Day 5: brainstorm the gold star schema (conformed dims for the mismatch report).
 
@@ -108,3 +108,5 @@
 18. CareFirst `name` is a category ("Surgery" for CPT 57452), not a description. Need a CPT description source in silver.
 19. `billing_code_modifier` (all 3) and `bundled_codes` (KP) not in planned silver model -> added.
 20. `provider_group_id` is unique only within a file. Key = source_file + provider_group_id.
+21. CareFirst: 1,281 of 23,953 TIN entries have no `business_name` (PPO part 10). Name lookup must come from NPI registry.
+22. Same NPI under several businesses is common: 28,335 of 99,956 NPIs (CareFirst PPO part 10). A doctor can have different rates per organization.

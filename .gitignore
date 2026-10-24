@@ -230,3 +230,4 @@ notes.txt
 *.xlsx
 .databricks/
 .claude/settings.local.json
+out/

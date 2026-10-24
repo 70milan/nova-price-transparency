@@ -52,7 +52,7 @@ File layout (same for all 3 insurers, 31 fields verified 2026-10-21):
 ### Data flow
 ```
 data/<insurer>/<yyyy-mm>/<file>.zip|.json.gz
-out/<insurer>/<yyyy-mm>/<source_file>/_tmp/                (during run)
+out/<insurer>/<yyyy-mm>/<source_stem>__tmp/               (during run; sibling, so the final folder only exists when done)
 out/<insurer>/<yyyy-mm>/<source_file>/provider_group.parquet
 out/<insurer>/<yyyy-mm>/<source_file>/negotiated_rate.parquet
 out/_runs/flatten_runs.jsonl

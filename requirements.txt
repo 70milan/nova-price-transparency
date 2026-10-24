@@ -4,3 +4,5 @@ pyarrow
 polars
 azure-identity
 azure-storage-file-datalake
+pytest
+duckdb
